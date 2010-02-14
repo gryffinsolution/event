@@ -4,6 +4,12 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,13 +23,6 @@ import util.RDao;
 public class EventCollector {
 	private static final Logger LOG = LogManager.getLogger(EventCollector.class);
 	
-	public void setConfValue(Conf cf, String[] args){
-		if (args.length <1){
-			LOG.error("please input config.xml as args");
-			System.exit(0);
-		}
-		cf.setConfFile(args[0]);
-	}
 	public static void printSQLException(SQLException e){
 		while (e != null){
             LOG.error("\n----- SQLException -----");
@@ -35,14 +34,24 @@ public class EventCollector {
     }
 	public static void main(String[] args) {
 		
-		Conf cf = new Conf();
-		EventCollector ctrl = new EventCollector();
-		ctrl.setConfValue(cf,args);
-		RDao rDao= new RDao();
-		int connection_limit=cf.getSinglefValue("agent_connection_trial_limit");
-		Connection conR=rDao.getConnection(cf.getDbURL(),cf.getSingleString("user"),cf.getSingleString("password"));
 		
-		String dbType=null;
+		DateTime start = new DateTime();
+		
+		Conf cf = new Conf();
+		if (args.length !=0 && args[0] !=null){
+			cf.setConfFile(args[0]);
+		}else{
+			LOG.error("there is no config.xml as a args[0]");
+			System.exit(0);
+		}
+		
+		
+		String rdbUrl=cf.getDbURL();
+		String rdbUser = cf.getSingleString("user");
+		String rdbPasswd = cf.getSingleString("password");
+		int thAll=cf.getSinglefValue("no_of_thread");
+		int agentPort = cf.getSinglefValue("agent_port");
+		String dbType = cf.getSingleString("main_db_type");
 		
 		if (cf.getDbURL().startsWith("jdbc:postgresql:")){
 			dbType="postgresql";
@@ -53,61 +62,17 @@ public class EventCollector {
 			System.exit(0);
 		}
 		
-		//-----------------------------Agent Dao Set----------
-		ADao aDao = new ADao();
+		ExecutorService pool = Executors.newFixedThreadPool(thAll);
+		Set<Future<Boolean>> set = new HashSet<Future<Boolean>>();
 		
-		HashMap <String,Integer> conFailedHosts= new HashMap<String, Integer>();
-		ArrayList <String> failed_hosts=new ArrayList<String>();
-		int port = cf.getSinglefValue("agent_port");
-		
-		while(true){
-			int i=0;
-			DateTime start = new DateTime();
-			ArrayList <String> hosts=rDao.getHosts(conR,cf);
-			rDao.setWorkingTimestamp(conR, cf,dbType);
-			for (String host:hosts){
-				i++;
-				LOG.trace(i+":"+host);
-				String lines=aDao.getEvent(port,host);
-				
-				if (lines.contains("error__")){ // fail or no return value TODO we have to distinguish
-					int trial=0;
-					if (conFailedHosts.containsKey(host)){
-						trial =conFailedHosts.get(host);
-						trial++;
-						LOG.info("host connection error set "+host+" cnt="+trial);
-						conFailedHosts.put(host,trial);
-					}else{
-						LOG.info("host connection error set "+host+" cnt=1");
-						conFailedHosts.put(host,1);
-					}
-					if (trial >connection_limit){
-						LOG.info("host connection error set "+host+" cnt=1");
-						failed_hosts.add(host);
-					}
-					if (!failed_hosts.isEmpty()){
-						LOG.info("host disable procedure started");
-						rDao.disableHosts(conR,failed_hosts);
-						failed_hosts.clear();
-					}
-				}else{
-					
-					if (conFailedHosts.containsKey(host)){
-						conFailedHosts.remove(host);
-					}
-					LOG.info(lines);
-					rDao.insertEvent(conR,host,lines,dbType);
-				}
-			}
-			DateTime end = new DateTime();
-			Duration elapsedTime= new Duration(start,end);
-			LOG.info(elapsedTime);
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+		for (int thNo=0; thNo<thAll;thNo++){
+			Callable callable = new Worker(thNo,thAll,rdbUrl,rdbUser,rdbPasswd,agentPort,dbType);
+			Future future =pool.submit(callable);
+			set.add(future);
 		}
-		//rDao.disconnect(conR);
+		pool.shutdown();
+		DateTime end=new DateTime();
+		Duration elapsedTime = new Duration(start,end);
+		LOG.info(elapsedTime);
 	}
 }

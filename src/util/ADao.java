@@ -13,8 +13,6 @@ import org.apache.logging.log4j.Logger;
 
 public class ADao {
 	private static final Logger LOG = LogManager.getLogger(ADao.class);
-	//private static final HashMap<String, HashMap<String, String>> TABLES = new HashMap<String, HashMap<String, String>>();
-	//private static final String EventTable = "AGENT_EVENT";
 
 	public boolean isWorking() {
 		return true;
@@ -46,6 +44,9 @@ public class ADao {
 		props.put("password", "catallena7");
 		String protocol = null;
 		StringBuffer sb=new StringBuffer();
+		if(host.matches("localhost.localdomain")){//TEST
+			host = "192.168.178.130";
+		}
 		protocol = "jdbc:derby://" + host + ":" + port + "/";
 
 		PreparedStatement pst = null;

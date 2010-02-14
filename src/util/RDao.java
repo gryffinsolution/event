@@ -33,13 +33,13 @@ public class RDao {
 			} else if (dbURL.startsWith("jdbc:oracle:")) {
 				Class.forName("oracle.jdbc.driver.OracleDriver");
 			}
-		}catch (ClassNotFoundException e) {
+		} catch (ClassNotFoundException e) {
 			LOG.error("DB Driver loading error!");
 			e.printStackTrace();
 		}
 		try {
 			con = DriverManager.getConnection(dbURL, user, password);
-		}catch (SQLException e) {
+		} catch (SQLException e) {
 			LOG.error("getConn Exception)");
 			e.printStackTrace();
 		}
@@ -49,113 +49,65 @@ public class RDao {
 	public void disconnect(Connection conn) {
 		try {
 			conn.close();
-		}catch (SQLException e) {
+		} catch (SQLException e) {
 			LOG.error("disConn Exception)");
 			printSQLException(e);
 		}
 	}
 
-	public ArrayList<String> getHosts(Connection con,Conf cf) {
+	public int getTotalHostNo(Connection con){
 		Statement stmt;
-		int startNo=cf.getSinglefValue("start_host_no");
-		int endNo=cf.getSinglefValue("end_host_no");
-		ArrayList<String> hostList = new ArrayList<String>();
-		int i=0;
-		try {
-			
-			//TODO String sql = "SELECT DISTINCT HOSTNAME FROM HOST_INFOS WHERE "; add condition
-			String sql = "SELECT DISTINCT HOSTNAME FROM HOST_INFOS WHERE STATUS = 'up'  and (HOST_NO >="+startNo+
-					" and HOST_NO <="+endNo+")";
+		int NoOfHost=0;
+		try{
+			String sql = "SELECT DISTINCT MAX(HOST_NO) FROM HOST_INFOS ";
 			stmt = con.createStatement();
 			ResultSet rs = stmt.executeQuery(sql);
-			while (rs.next()) {
-				i++;
-				String host=rs.getString("HOSTNAME");
-				LOG.info(i+":hostnanme="+host);
+			while (rs.next()){
+				NoOfHost=rs.getInt(1);
+				LOG.info("Total hosts="+NoOfHost);
+			}
+			rs.close();
+			stmt.close();
+		} catch (SQLException e){
+			printSQLException(e);
+		}
+		return NoOfHost;
+	}
+	
+	public ArrayList<String> getHostsMT(Connection con,int seq,int Total){
+		Statement stmt;
+		ArrayList<String> hostList = new ArrayList<String>();
+		try{
+			int NoOfHost=getTotalHostNo(con);
+			int sliceTerm=(int) Math.ceil(NoOfHost/(Total*1.0));
+			LOG.info("GAP=>"+sliceTerm);
+			int sliceStart=0;
+			int sliceEnd=0;
+			sliceStart=sliceStart+sliceTerm*seq;
+			sliceEnd=sliceStart+sliceTerm-1;
+			LOG.info(seq+":"+sliceStart+"~"+sliceEnd);
+			String sql="SELECT DISTINCT HOSTNAME FROM HOST_INFOS WHERE HOST_NO > "+sliceStart+" and HOST_NO <"+sliceEnd ;
+			stmt = con.createStatement();
+			ResultSet rs= stmt.executeQuery(sql);
+			while (rs.next()){
+				String host = rs.getString("HOSTNAME");
+				LOG.info(seq+":hostname"+host);
 				hostList.add(host);
 			}
 			rs.close();
 			stmt.close();
-		}catch (SQLException e) {
+		} catch (SQLException e){
 			printSQLException(e);
 		}
 		return hostList;
 	}
-/*
-	public long getOldEventID(Connection con, String hostname) {
-		long id = 0;
-		Statement stmt;
-		LOG.info(hostname);
-		try {
-			String sql = "SELECT MAX(LOCAL_ID) FROM EVENT WHERE HOSTNAME='"
-					+ hostname + "'";
-			stmt = con.createStatement();
-			ResultSet rs = stmt.executeQuery(sql);
-			while (rs.next()) {
-				id = rs.getLong(1);
-			}
-			rs.close();
-			stmt.close();
-		} catch (SQLException e) {
-			printSQLException(e);
-		} 
-		LOG.trace(id);
-		return id;
-	}*/
-
-	public void disableHosts(Connection conR,ArrayList<String> failed_hosts) {
-		for (String host:failed_hosts){
-			String sql = null;
-			PreparedStatement pst = null;
-			LOG.fatal("Manager can't connect to "+host);
-			LOG.fatal("No more connection try to "+host);
-			sql = "UPDATE HOST_INFOS SET STATUS ='NotConnected' WHERE HOSTNAME='"+host+"'";
-			LOG.trace(sql);
-			
-			try {
-				pst = conR.prepareStatement(sql);
-				conR.setAutoCommit(false);
-				pst.executeUpdate();
-				conR.commit();
-				pst.close();
-			}catch (SQLException sqle) {
-				printSQLException(sqle);
-			}finally {
-				try {
-					if (pst != null)
-						pst.close();
-				} catch (SQLException e) {
-					printSQLException(e);
-				}
-				pst = null;
-			}
-		}
+	
+	public ArrayList<String> getHostsTest(Connection conR){
+		ArrayList<String> host = new ArrayList<String>();
+		host.add("localhost.localdomain");
+		return host;
 	}
-
-	public void updateLastUpdateTime(Connection conR, String host){
-		PreparedStatement pst =null;
-		try{
-			conR.setAutoCommit(false);
-			String sqlLastUpdateTime = "UPDATE HOST_INFOS SET LAST_UPDATED_TIME=SYSDATE WHERE HOSTNAME='"+host+"'";
-			LOG.trace(sqlLastUpdateTime);
-			pst = conR.prepareStatement(sqlLastUpdateTime);
-			pst.executeUpdate();
-			conR.commit();
-			pst.close();
-		}catch (SQLException sqle) {
-			printSQLException(sqle);
-		}catch (ArrayIndexOutOfBoundsException e){
-			
-		}finally {
-			try {
-				if (pst != null)
-					pst.close();
-			} catch (SQLException e) {
-				printSQLException(e);
-			}
-			pst = null;
-		}
-	}
+	
 	
 	public boolean insertEvent(Connection conR, String host, String allLines,String dbType) {
 		PreparedStatement pst = null;
@@ -240,6 +192,7 @@ public class RDao {
 		}
 		return true;
 	}
+	
 	public void setWorkingTimestamp(Connection conR, Conf cf,String dbType){
 		PreparedStatement pst =null;
 		try{
@@ -274,4 +227,5 @@ public class RDao {
 			pst = null;
 		}
 	}
+	
 }
