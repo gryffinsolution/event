@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<event_collector>
+	<main_db_type>PostgreSQL</main_db_type>
+	<main_db_url>jdbc:postgresql://localhost:5432/mapledb</main_db_url>
+	<user>pipedpiper47</user>
+	<password>catallena7</password>
+	<!-- <main_db_type>Oracle</main_db_type>
+	<main_db_url>jdbc:oracle:thin:@localhost:1521:mapledb</main_db_url> -->
+	<agent_connection_trial_limit>4</agent_connection_trial_limit>
+	<agent_port>1527</agent_port>
+	<start_host_no>1</start_host_no>
+	<end_host_no>10000</end_host_no>
+	<service_no>1</service_no>
+</event_collector>
