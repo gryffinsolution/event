@@ -65,7 +65,7 @@ public class EventCollector {
 		ExecutorService pool = Executors.newFixedThreadPool(thAll);
 		Set<Future<Boolean>> set = new HashSet<Future<Boolean>>();
 		
-		for (int thNo=0; thNo<thAll;thNo++){
+		for (int thNo=1; thNo<=thAll;thNo++){
 			Callable callable = new Worker(thNo,thAll,rdbUrl,rdbUser,rdbPasswd,agentPort,dbType);
 			Future future =pool.submit(callable);
 			set.add(future);

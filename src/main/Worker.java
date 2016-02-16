@@ -49,6 +49,7 @@ public class Worker implements Callable<Boolean> {
 			rDao.insertEvent(conn,host,line,dbType);
 			
 		}
+		rDao.setWorkingTimestamp(conn,rdbUrl,thNo);
 		DateTime end=new DateTime();
 		Duration elapsedTime = new Duration(start,end);
 		LOG.info(elapsedTime);

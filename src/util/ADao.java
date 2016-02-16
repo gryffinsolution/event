@@ -45,7 +45,7 @@ public class ADao {
 		String protocol = null;
 		StringBuffer sb=new StringBuffer();
 		if(host.matches("localhost.localdomain")){//TEST
-			host = "192.168.178.130";
+			host = "192.168.178.131";
 		}
 		protocol = "jdbc:derby://" + host + ":" + port + "/";
 

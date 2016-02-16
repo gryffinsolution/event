@@ -193,21 +193,21 @@ public class RDao {
 		return true;
 	}
 	
-	public void setWorkingTimestamp(Connection conR, Conf cf,String dbType){
+	public void setWorkingTimestamp(Connection conR, String dbURL,int thNo){
 		PreparedStatement pst =null;
 		try{
 			conR.setAutoCommit(false);
-			int svrNo=cf.getSinglefValue("service_no");
+			
 			String sqlLastUpdateTime =null;
 			
-			if (dbType.matches("oracle")){
-				sqlLastUpdateTime = "UPDATE MANAGER_SERVICE_HEALTH_CHECK SET LAST_UPDATED_TIME=SYSDATE WHERE SERVICE_NAME='EventCollector"+svrNo+"'"; //oracle
-			}else if (dbType.matches("postgresql")){
-				sqlLastUpdateTime = "UPDATE MANAGER_SERVICE_HEALTH_CHECK SET LAST_UPDATED_TIME=NOW() WHERE SERVICE_NAME='EventCollector"+svrNo+"'";//pgsql
-			}else{
-				LOG.fatal("Can't find right JDBC. please check you config.xml");
+			if (dbURL.startsWith("jdbc:postgresql:")){
+				sqlLastUpdateTime = "UPDATE MANAGER_SERVICE_HEALTH_CHECK SET LAST_UPDATED_TIME=NOW() WHERE SERVICE_NAME='EventCollector"+thNo+"'"; //pgsql
+			}else if (dbURL.startsWith("jdbc:oracle:")) {
+				sqlLastUpdateTime = "UPDATE MANAGER_SERVICE_HEALTH_CHECK SET LAST_UPDATED_TIME=SYSDATE WHERE SERVICE_NAME='EventCollector"+thNo+"'";//oracle
+			}else{LOG.fatal("Can't find right JDBC. please check you config.xml");
 				System.exit(0);
 			}
+			
 			LOG.trace(sqlLastUpdateTime);
 			pst = conR.prepareStatement(sqlLastUpdateTime);
 			pst.executeUpdate();
