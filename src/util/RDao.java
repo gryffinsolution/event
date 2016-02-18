@@ -86,7 +86,7 @@ public class RDao {
 			sliceStart=sliceStart+sliceTerm*seq;
 			sliceEnd=sliceStart+sliceTerm-1;
 			LOG.info(seq+":"+sliceStart+"~"+sliceEnd);
-			String sql="SELECT DISTINCT HOSTNAME FROM HOST_INFOS WHERE HOST_NO > "+sliceStart+" and HOST_NO <"+sliceEnd ;
+			String sql="SELECT DISTINCT HOSTNAME FROM HOST_INFOS WHERE STATUS ='up' AND HOST_NO > "+sliceStart+" and HOST_NO <"+sliceEnd ;
 			stmt = con.createStatement();
 			ResultSet rs= stmt.executeQuery(sql);
 			while (rs.next()){
