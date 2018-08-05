@@ -28,23 +28,21 @@ public class ADao {
 			LOG.fatal(e.getMessage());
 			return "error__NoTable";
 		}
-		if (e.getMessage().contains("Error connecting to server")){
+		if (e.getMessage().contains("Error connecting to server")) {
 			LOG.info(e.getMessage());
 			return "error__connection";
 		}
 		return "error__unknown";
-
 	}
 
-	
 	public String getEvent(int port, String host) {
 		Connection conn = null;
 		Properties props = new Properties();
 		props.put("user", "agent");
 		props.put("password", "catallena7");
 		String protocol = null;
-		StringBuffer sb=new StringBuffer();
-		if(host.matches("localhost.localdomain")){//TEST
+		StringBuffer sb = new StringBuffer();
+		if (host.matches("localhost.localdomain")) {// TEST
 			host = "192.168.178.131";
 		}
 		protocol = "jdbc:derby://" + host + ":" + port + "/";
@@ -52,18 +50,18 @@ public class ADao {
 		PreparedStatement pst = null;
 		ResultSet rs = null;
 		Statement s = null;
-		long lastId=0L;
+		long lastId = 0L;
 		try {
-			DriverManager.setLoginTimeout(1);
+			DriverManager.setLoginTimeout(5);
 			conn = DriverManager.getConnection(
 					protocol + "derbyDB;create=true", props);
-			String sql="SELECT ID,EVENT_CODE,SEVERITY,MESSAGE,TIME FROM AGENT_EVENT WHERE ID> (SELECT LAST_SENT_EVENT_ID FROM AGENT_MGR WHERE ID=0)  ORDER BY ID";
-			LOG.trace(host+":"+sql);
+			String sql = "SELECT ID,EVENT_CODE,SEVERITY,MESSAGE,TIME FROM AGENT_EVENT WHERE ID> (SELECT LAST_SENT_EVENT_ID FROM AGENT_MGR WHERE ID=0)  ORDER BY ID";
+			LOG.trace(host + ":" + sql);
 			s = conn.createStatement();
 			rs = s.executeQuery(sql);
-			
+
 			while (rs.next()) {
-				lastId=rs.getLong("ID");
+				lastId = rs.getLong("ID");
 				sb.append(lastId);
 				sb.append(",");
 				sb.append(rs.getString("EVENT_CODE"));
@@ -75,30 +73,31 @@ public class ADao {
 				sb.append(rs.getTimestamp("TIME"));
 				sb.append("\n");
 			}
-			if (sb.length()>0)
-				LOG.info(host+":res="+sb);
-			
-			if (sb.length()>3 && lastId > 0){
-				sql="UPDATE AGENT_MGR SET LAST_SENT_EVENT_ID="+lastId+" WHERE ID=0";
-				LOG.trace(host+":"+sql);
+			if (sb.length() > 0)
+				LOG.info(host + ":res=" + sb);
+			if (sb.length() > 3 && lastId > 0) {
+				sql = "UPDATE AGENT_MGR SET LAST_SENT_EVENT_ID=" + lastId
+						+ " WHERE ID=0";
+				LOG.trace(host + ":" + sql);
 				pst = conn.prepareStatement(sql);
 				pst.executeUpdate();
 				conn.commit();
 			}
 		} catch (SQLException sqle) {
-			return(printSQLException(sqle));
-		}finally {
+			return (printSQLException(sqle));
+		} finally {
 			try {
-				if (pst != null){
+				if (pst != null) {
 					pst.close();
 					pst = null;
 				}
-				if (conn !=null){
+				if (conn != null) {
 					conn.close();
-					conn=null;
+					conn = null;
+					return sb.toString();
 				}
 			} catch (SQLException e) {
-				return(printSQLException(e));
+				return (printSQLException(e));
 			}
 		}
 		return sb.toString();
