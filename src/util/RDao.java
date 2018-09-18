@@ -6,7 +6,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -111,55 +114,6 @@ public class RDao {
 		return host;
 	}
 
-	public boolean insertEventOra(Connection conR, String host,
-			String allLines, String dbType) {
-		PreparedStatement pst = null;
-		if (allLines.length() <= 0) {
-			return false;
-		}
-		try {
-			conR.setAutoCommit(false);
-			String[] lines = allLines.split("\n");
-			for (String line : lines) {
-				LOG.info(line);
-				String[] items = line.toString().split(",");
-				String sql = null;
-				// START_TIME TIMESTAMP, LAST_EVENT_TIMESTAMP, REPEAT_CNT
-				// BIGINT
-				// FIRST INPUT
-
-				LOG.info("date=" + items[4]);
-				String[] dates = items[4].split("\\.");
-				LOG.info("date=" + dates[0]);
-				sql = "INSERT INTO HOST_EVENT "
-						+ "       (HOSTNAME,ARRIVAL_TIME,LOCAL_ID,EVENT_CODE,SEVERITY,MESSAGE,START_TIME,LAST_EVENT_TIME,REPEAT_CNT) "
-						+ "VALUES ('" + host + "',CURRENT_TIMESTAMP,"
-						+ items[0] + ",'" + items[1] + "','" + items[2] + "','"
-						+ items[3] + "',TO_DATE('" + dates[0]
-						+ "', 'YYYY-MM-DD HH24:MI:SS'),TO_DATE('" + dates[0]
-						+ "', 'YYYY-MM-DD HH24:MI:SS')," + 0 + ")";
-				LOG.trace(sql);
-				pst = conR.prepareStatement(sql);
-				pst.executeUpdate();
-				conR.commit();
-				pst.close();
-			}
-		} catch (SQLException sqle) {
-			printSQLException(sqle);
-		} catch (ArrayIndexOutOfBoundsException e) {
-			LOG.error("IndexOut " + host + " " + allLines);
-		} finally {
-			try {
-				if (pst != null)
-					pst.close();
-			} catch (SQLException e) {
-				printSQLException(e);
-			}
-			pst = null;
-		}
-		return true;
-	}
-
 	public void setWorkingTimestamp(Connection conR, String dbURL, int thNo) {
 		PreparedStatement pst = null;
 		try {
@@ -246,27 +200,22 @@ public class RDao {
 		}
 	}
 
-	public int insertEventOraTest(String host,
+	public boolean insertEventOra(Connection conR, String host,
 			String allLines, String dbType) {
-		int retID=0;
 		PreparedStatement pst = null;
 		if (allLines.length() <= 0) {
-			return retID;
+			return false;
 		}
 		try {
-		//	conR.setAutoCommit(false);
+			conR.setAutoCommit(false);
 			String[] lines = allLines.split("\n");
 			for (String line : lines) {
 				LOG.info(line);
 				String[] items = line.toString().split(",");
 				String sql = null;
-				// START_TIME TIMESTAMP, LAST_EVENT_TIMESTAMP, REPEAT_CNT
-				// BIGINT
-				// FIRST INPUT
 
 				LOG.info("date=" + items[4]);
 				String[] dates = items[4].split("\\.");
-				
 				LOG.info("date=" + dates[0]);
 				sql = "INSERT INTO HOST_EVENT "
 						+ "       (HOSTNAME,ARRIVAL_TIME,LOCAL_ID,EVENT_CODE,SEVERITY,MESSAGE,START_TIME,LAST_EVENT_TIME,REPEAT_CNT) "
@@ -276,21 +225,13 @@ public class RDao {
 						+ "', 'YYYY-MM-DD HH24:MI:SS'),TO_DATE('" + dates[0]
 						+ "', 'YYYY-MM-DD HH24:MI:SS')," + 0 + ")";
 				LOG.trace(sql);
-				try{
-					retID=Integer.parseInt(items[0]); 
-				}catch (NumberFormatException nfe){
-					LOG.error(nfe);
-					continue;
-				}
-//				pst = conR.prepareStatement(sql);
-//				pst.executeUpdate();
-//				conR.commit();
-//				pst.close();
+				pst = conR.prepareStatement(sql);
+				pst.executeUpdate();
+				conR.commit();
+				pst.close();
 			}
-		}/*catch (SQLException sqle) {
+		} catch (SQLException sqle) {
 			printSQLException(sqle);
-		}*/catch (NumberFormatException nfe){
-			LOG.error(nfe);
 		} catch (ArrayIndexOutOfBoundsException e) {
 			LOG.error("IndexOut " + host + " " + allLines);
 		} finally {
@@ -302,56 +243,76 @@ public class RDao {
 			}
 			pst = null;
 		}
-		return retID;
+		return true;
 	}
 
-	/*
-	 * public boolean insertEvent(Connection conR, String host, String allLines,
-	 * String dbType) { PreparedStatement pst = null; if (allLines.length() <=
-	 * 0) { return false; } try { conR.setAutoCommit(false); String[] lines =
-	 * allLines.split("\n"); for (String line : lines) { LOG.info(line); int
-	 * repeatCnt = 0; int localID = -1; int rows = -1; String[] items =
-	 * line.toString().split(","); String sql = null; if
-	 * (dbType.matches("oracle")) { LOG.info(items[4]); String[] time =
-	 * items[4].split("\\."); LOG.info(time[0]); sql =
-	 * "SELECT DISTINCT REPEAT_CNT,LOCAL_ID FROM HOST_EVENT WHERE HOSTNAME='" +
-	 * host + "' AND " + " EVENT_CODE='" + items[1] + "' AND (to_date ('" +
-	 * time[0] + "','YYYY-MM-DD HH24:MI:SS')- " +
-	 * "LAST_EVENT_TIME < NUMTODSINTERVAL('10','MINUTE') )"; // oracle } else if
-	 * (dbType.matches("postgresql")) { sql =
-	 * "SELECT DISTINCT REPEAT_CNT,LOCAL_ID FROM HOST_EVENT WHERE HOSTNAME='" +
-	 * host + "' AND " + " EVENT_CODE='" + items[1] + "' AND (timestamp '" +
-	 * items[4] + "'- LAST_EVENT_TIME  < time '0:10')"; // pgsql } else {
-	 * LOG.fatal("Can't find right JDBC. please check you config.xml");
-	 * System.exit(0); }
-	 * 
-	 * LOG.info("sql=" + sql); Statement stmt = conR.createStatement();
-	 * ResultSet rs = stmt.executeQuery(sql); while (rs.next()) { rows =
-	 * rs.getRow(); repeatCnt = rs.getInt("REPEAT_CNT"); localID =
-	 * rs.getInt("LOCAL_ID"); LOG.info("hostnanme=" + items[1] + ":" + repeatCnt
-	 * + ":" + localID);
-	 * 
-	 * } rs.close(); stmt.close(); LOG.info(rows); if (rows <= 0) { // new
-	 * arrival event // START_TIME TIMESTAMP, LAST_EVENT_TIME TIMESTAMP, //
-	 * REPEAT_CNT BIGINT // FIRST INTPUT sql = "INSERT INTO HOST_EVENT " +
-	 * "       (HOSTNAME,ARRIVAL_TIME,LOCAL_ID,EVENT_CODE,SEVERITY,MESSAGE,START_TIME,LAST_EVENT_TIME,REPEAT_CNT) "
-	 * + "VALUES ('" + host + "',CURRENT_TIMESTAMP," + items[0] + ",'" +
-	 * items[1] + "','" + items[2] + "','" + items[3] + "','" + items[4] + "','"
-	 * + items[4] + "'," + repeatCnt + ")"; LOG.trace(sql); pst =
-	 * conR.prepareStatement(sql); pst.executeUpdate(); conR.commit();
-	 * pst.close(); } else { repeatCnt++; sql = "UPDATE HOST_EVENT " +
-	 * "SET LOCAL_ID=" + items[0] + ",MESSAGE='" + items[3] +
-	 * "',LAST_EVENT_TIME='" + items[4] + "',REPEAT_CNT=" + repeatCnt + " " +
-	 * "WHERE HOSTNAME='" + host + "' AND EVENT_CODE='" + items[1] +
-	 * "' AND LOCAL_ID=" + localID; LOG.trace(sql); pst =
-	 * conR.prepareStatement(sql); pst.executeUpdate(); conR.commit();
-	 * pst.close();
-	 * 
-	 * } } } catch (SQLException sqle) { printSQLException(sqle); } catch
-	 * (ArrayIndexOutOfBoundsException e) { LOG.error("IndexOut " + host + " " +
-	 * allLines);
-	 * 
-	 * } finally { try { if (pst != null) pst.close(); } catch (SQLException e)
-	 * { printSQLException(e); } pst = null; } return true; }
-	 */
+	public void insertEventOraV3(Connection conR, String host,
+			String allLines, String dbType, String gmtBase) {
+		PreparedStatement pst = null;
+		if (allLines.length() <= 0) {
+			return;
+		}
+		try {
+			conR.setAutoCommit(false);
+			String[] lines = allLines.split("\n");
+			for (String line : lines) {
+				LOG.info(line);
+				String[] items = line.toString().split(",");
+				String sql = null;
+
+				LOG.info("date=" + items[4]);
+				long epTime=Long.parseLong(items[4])*1000L;
+				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				sdf.setTimeZone(TimeZone.getTimeZone(gmtBase));
+				String strDate =sdf.format(epTime);
+				
+				LOG.info("date=" + strDate);
+				sql = "INSERT INTO HOST_EVENT "
+						+ "       (HOSTNAME,ARRIVAL_TIME,LOCAL_ID,EVENT_CODE,SEVERITY,MESSAGE,START_TIME,LAST_EVENT_TIME,REPEAT_CNT) "
+						+ "VALUES ('" + host + "',CURRENT_TIMESTAMP,"
+						+ items[0] + ",'" + items[1] + "','" + items[2] + "','"
+						+ items[3] + "',TO_DATE('" + strDate
+						+ "', 'YYYY-MM-DD HH24:MI:SS'),TO_DATE('" + strDate
+						+ "', 'YYYY-MM-DD HH24:MI:SS')," + 0 + ")";
+				LOG.trace(sql);
+				pst = conR.prepareStatement(sql);
+				pst.executeUpdate();
+				conR.commit();
+				pst.close();
+			}
+		} catch (SQLException sqle) {
+			printSQLException(sqle);
+		} catch (ArrayIndexOutOfBoundsException e) {
+			LOG.error("IndexOut " + host + " " + allLines);
+		} finally {
+			try {
+				if (pst != null)
+					pst.close();
+			} catch (SQLException e) {
+				printSQLException(e);
+			}
+			pst = null;
+		}
+	}
+
+	public HashMap<String, Boolean> getV3Info(Connection conn) {
+		HashMap<String, Boolean> isV3 = new HashMap<String, Boolean>();
+		Statement stmt;
+		try {
+			String sql = "SELECT DISTINCT HOSTNAME,IS_V3 FROM HOST_INFOS WHERE IS_V3=1 ";
+			LOG.info(sql);
+			;
+			stmt = conn.createStatement();
+			ResultSet rs = stmt.executeQuery(sql);
+			while (rs.next()) {
+				String host = rs.getString("HOSTNAME");
+				isV3.put(host, true);
+			}
+			rs.close();
+			stmt.close();
+		} catch (SQLException e) {
+			printSQLException(e);
+		}
+		return isV3;
+	}
 }

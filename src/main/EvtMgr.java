@@ -52,6 +52,7 @@ public class EvtMgr {
 		int agentPort = cf.getSinglefValue("agent_port");
 		String dbType = cf.getSingleString("main_db_type");
 		String sql = cf.getSingleString("get_host_sql");
+		String gmtBase = cf.getSingleString("GMT");
 
 		if (cf.getDbURL().startsWith("jdbc:postgresql:")) {
 			dbType = "postgresql";
@@ -67,7 +68,7 @@ public class EvtMgr {
 
 		for (int thNo = 1; thNo <= thAll; thNo++) {
 			Callable callable = new Worker(thNo, thAll, rdbUrl, rdbUser,
-					rdbPasswd, agentPort, dbType, sql);
+					rdbPasswd, agentPort, dbType, sql, gmtBase);
 			Future future = pool.submit(callable);
 			set.add(future);
 		}
