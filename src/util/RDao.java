@@ -27,6 +27,16 @@ public class RDao {
 		}
 	}
 
+	public static void printSQLExceptionHost(String host, SQLException e) {
+		while (e != null) {
+			LOG.error("\n----- SQLException -----");
+			LOG.error("  SQL State:  " + e.getSQLState());
+			LOG.error("  Error Code: " + e.getErrorCode());
+			LOG.error("  Host:" + host + ",Message:    " + e.getMessage());
+			e = e.getNextException();
+		}
+	}
+
 	public Connection getConnection(String dbURL, String user, String password) {
 		LOG.info("DB_URL=" + dbURL);
 		Connection con = null;
@@ -246,8 +256,8 @@ public class RDao {
 		return true;
 	}
 
-	public void insertEventOraV3(Connection conR, String host,
-			String allLines, String dbType, String gmtBase) {
+	public void insertEventOraV3(Connection conR, String host, String allLines,
+			String dbType, String gmtBase) {
 		PreparedStatement pst = null;
 		if (allLines.length() <= 0) {
 			return;
@@ -261,11 +271,12 @@ public class RDao {
 				String sql = null;
 
 				LOG.info("date=" + items[4]);
-				long epTime=Long.parseLong(items[4])*1000L;
-				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				long epTime = Long.parseLong(items[4]) * 1000L;
+				SimpleDateFormat sdf = new SimpleDateFormat(
+						"yyyy-MM-dd HH:mm:ss");
 				sdf.setTimeZone(TimeZone.getTimeZone(gmtBase));
-				String strDate =sdf.format(epTime);
-				
+				String strDate = sdf.format(epTime);
+
 				LOG.info("date=" + strDate);
 				sql = "INSERT INTO HOST_EVENT "
 						+ "       (HOSTNAME,ARRIVAL_TIME,LOCAL_ID,EVENT_CODE,SEVERITY,MESSAGE,START_TIME,LAST_EVENT_TIME,REPEAT_CNT) "
@@ -281,7 +292,7 @@ public class RDao {
 				pst.close();
 			}
 		} catch (SQLException sqle) {
-			printSQLException(sqle);
+			printSQLExceptionHost(host,sqle);
 		} catch (ArrayIndexOutOfBoundsException e) {
 			LOG.error("IndexOut " + host + " " + allLines);
 		} finally {

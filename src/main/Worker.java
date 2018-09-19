@@ -55,10 +55,10 @@ public class Worker implements Callable<Boolean> {
 		for (String host : hosts) {
 			rDao.setEventStartTimestamp(conn, host);
 			if (isV3.containsKey(host) && isV3.get(host)) {
-				LOG.trace("V3:"+thNo + "-" + i + ":Checking:" + host);
+				LOG.trace("V3:" + thNo + "-" + i + ":Checking:" + host);
 				i++;
 				String line = asao.getEventGet(host, agentPort);
-				LOG.info("outFrADaoV3=" + line);
+				LOG.info("outFrASaoV3=" + line);
 				if (line.length() > 0) {
 					rDao.insertEventOraV3(conn, host, line, dbType, gmtBase);
 				}
@@ -68,7 +68,7 @@ public class Worker implements Callable<Boolean> {
 				String line = adao.getEvent(agentPort, host);
 				LOG.info("outFrADaoV3=" + line);
 				if (line.length() > 0) {
-					rDao.insertEventOraV3(conn, host, line, dbType, gmtBase);
+					rDao.insertEventOra(conn, host, line, dbType);
 				}
 			}
 			rDao.setEventEndTimestamp(conn, host);
