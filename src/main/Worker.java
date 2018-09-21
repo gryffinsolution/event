@@ -45,7 +45,7 @@ public class Worker implements Callable<Boolean> {
 		RDao rDao = new RDao();
 		Connection conn = rDao.getConnection(rdbUrl, rdbUser, rdbPassword);
 		ArrayList<String> hosts = rDao.getHostsMT(conn, thNo - 1, thAll, sql);
-		// ArrayList<String> hosts = rDao.getHostsTest();
+		// ArrayList <String> hosts = rDao.getHostsTest();
 		HashMap<String, Boolean> isV3 = rDao.getV3Info(conn);
 
 		int i = 0;
@@ -66,7 +66,7 @@ public class Worker implements Callable<Boolean> {
 				LOG.trace("V2:" + thNo + "-" + i + ":Checking:" + host);
 				i++;
 				String line = adao.getEvent(agentPort, host);
-				LOG.info("outFrADaoV3=" + line);
+				LOG.info("outFrADaoV2=" + line);
 				if (line.length() > 0) {
 					rDao.insertEventOra(conn, host, line, dbType);
 				}

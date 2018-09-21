@@ -292,7 +292,7 @@ public class RDao {
 				pst.close();
 			}
 		} catch (SQLException sqle) {
-			printSQLExceptionHost(host,sqle);
+			printSQLExceptionHost(host, sqle);
 		} catch (ArrayIndexOutOfBoundsException e) {
 			LOG.error("IndexOut " + host + " " + allLines);
 		} finally {
@@ -312,7 +312,6 @@ public class RDao {
 		try {
 			String sql = "SELECT DISTINCT HOSTNAME,IS_V3 FROM HOST_INFOS WHERE IS_V3=1 ";
 			LOG.info(sql);
-			;
 			stmt = conn.createStatement();
 			ResultSet rs = stmt.executeQuery(sql);
 			while (rs.next()) {
